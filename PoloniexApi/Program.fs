@@ -1,6 +1,5 @@
 ﻿open System.Net.Http
 open System
-open Newtonsoft.Json
 open FSharp.Control.Tasks
 open System.IO
 open Client.TradingApi
@@ -8,7 +7,9 @@ open Client.TradingApi
 
 [<EntryPoint>]
 let main argv = 
-    let tradingClient = Client.TradingApi.Client("api_key_here", "secret_here")
+    let keys = File.ReadAllLines(@"..\..\Keys.txt")
+    let apiKey, secret = keys.[0], keys.[1]
+    let tradingClient = Client.TradingApi.Client(apiKey, secret)
     let publicClient = Client.PublicApi.Client()
-    let result = tradingClient.TransferBalance("XMR", 7.5M, Margin, Exchange).Result
+    let result = tradingClient.TransferBalance("BTC", 0.0005m, Exchange, Margin).Result
     0
