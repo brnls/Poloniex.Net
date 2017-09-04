@@ -85,6 +85,7 @@ module PublicApi =
 
 module TradingApi = 
     open System.Security.Authentication
+    open System.Runtime.CompilerServices
 
     let constructHttpClient (apiKey:string) =
         let client = new HttpClient()
@@ -134,7 +135,7 @@ module TradingApi =
             return! response |> ClientResult.fromResponse<Balances>
             }
 
-        member x.TransferBalance(currency: string, amount:decimal, fromAccount: AccountType, toAccount :AccountType) = 
+        member x.TransferBalance(currency: string, amount: decimal, fromAccount: AccountType, toAccount: AccountType) = 
             let param = [
                 ("currency", currency)
                 ("amount", amount.ToString())
@@ -143,12 +144,26 @@ module TradingApi =
                 ]
             sendMessage "transferBalance" param 
         
-        member x.Withdraw(currency: string, amount:decimal, address: string) = 
+        member x.Withdraw(currency: string, amount: decimal, address: string) = 
             let param = [
                 ("currency", currency)
                 ("amount", amount.ToString())
                 ("address", address)
             ]
             sendMessage "withdraw" param
+        
+        member x.Buy(currencyPair: string, rate: decimal, amount: decimal) =
+            let param = [
+                ("currencyPair", currencyPair)
+                ("rate", rate.ToString())
+                ("amount", amount.ToString())
+            ]
+            sendMessage "buy" param
+        
+        member x.CancelOrder(orderNumber: int64) = 
+            let param = [
+                ("orderNumber", orderNumber.ToString())
+            ]
+            sendMessage "cancelOrder" param
 
 
