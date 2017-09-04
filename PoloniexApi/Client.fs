@@ -30,6 +30,11 @@ let sendMessageWithDelay (client:HttpClient) (semaphore: SemaphoreSlim) =
 type ClientResult<'a> =
     |Ok of HttpResponseMessage * 'a
     |Error of HttpResponseMessage
+        with 
+            member x.Result() = 
+                match x with
+                |Ok (_, result) -> result
+                |Error rep -> failwith (rep.Content.ReadAsStringAsync().Result)
 
 module ClientResult = 
     let fromResponse<'a> (response: HttpResponseMessage) = task {
@@ -84,8 +89,6 @@ module PublicApi =
         }
 
 module TradingApi = 
-    open System.Security.Authentication
-    open System.Runtime.CompilerServices
 
     let constructHttpClient (apiKey:string) =
         let client = new HttpClient()
@@ -116,6 +119,20 @@ module TradingApi =
     |Exchange
     |Margin
     |Lending
+
+    type TradeResult = {
+        amount: decimal
+        date: DateTimeOffset
+        rate: decimal
+        total: decimal
+        tradeID: int64
+        ``type``: string
+        }
+
+    type BuyResponse = {
+        orderNumber: int64
+        resultingTrades: TradeResult seq
+        }
 
     type Client(apiKey:string, secret:string) =
 
@@ -151,14 +168,16 @@ module TradingApi =
                 ("address", address)
             ]
             sendMessage "withdraw" param
-        
-        member x.Buy(currencyPair: string, rate: decimal, amount: decimal) =
+
+        member x.Buy(currencyPair: string, rate: decimal, amount: decimal) = task {
             let param = [
                 ("currencyPair", currencyPair)
                 ("rate", rate.ToString())
                 ("amount", amount.ToString())
             ]
-            sendMessage "buy" param
+            let! response = sendMessage "buy" param
+            return! response |> ClientResult.fromResponse<BuyResponse>
+            }
         
         member x.CancelOrder(orderNumber: int64) = 
             let param = [
