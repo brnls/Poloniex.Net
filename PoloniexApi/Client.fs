@@ -120,6 +120,14 @@ module TradingApi =
     |Margin
     |Lending
 
+    type OpenOrder = {
+        orderNumber: int64
+        ``type``: string
+        rate: decimal
+        amount: decimal
+        total: decimal
+        }
+
     type TradeResult = {
         amount: decimal
         date: DateTimeOffset
@@ -152,22 +160,15 @@ module TradingApi =
             return! response |> ClientResult.fromResponse<Balances>
             }
 
-        member x.TransferBalance(currency: string, amount: decimal, fromAccount: AccountType, toAccount: AccountType) = 
-            let param = [
-                ("currency", currency)
-                ("amount", amount.ToString())
-                ("fromAccount", fromAccount.ToString().ToLower())
-                ("toAccount", toAccount.ToString().ToLower())
-                ]
-            sendMessage "transferBalance" param 
         
-        member x.Withdraw(currency: string, amount: decimal, address: string) = 
+        member x.ReturnOpenOrders(currencyPair: string) = task {
             let param = [
-                ("currency", currency)
-                ("amount", amount.ToString())
-                ("address", address)
+                ("currencyPair", currencyPair)
             ]
-            sendMessage "withdraw" param
+            let! response = sendMessage "returnOpenOrders" param
+            return! response |> ClientResult.fromResponse<OpenOrder seq>
+            }
+
 
         member x.Buy(currencyPair: string, rate: decimal, amount: decimal) = task {
             let param = [
@@ -178,6 +179,26 @@ module TradingApi =
             let! response = sendMessage "buy" param
             return! response |> ClientResult.fromResponse<BuyResponse>
             }
+        
+
+        member x.Withdraw(currency: string, amount: decimal, address: string) = 
+            let param = [
+                ("currency", currency)
+                ("amount", amount.ToString())
+                ("address", address)
+            ]
+            sendMessage "withdraw" param
+
+
+        member x.TransferBalance(currency: string, amount: decimal, fromAccount: AccountType, toAccount: AccountType) = 
+            let param = [
+                ("currency", currency)
+                ("amount", amount.ToString())
+                ("fromAccount", fromAccount.ToString().ToLower())
+                ("toAccount", toAccount.ToString().ToLower())
+                ]
+            sendMessage "transferBalance" param 
+        
         
         member x.CancelOrder(orderNumber: int64) = 
             let param = [
