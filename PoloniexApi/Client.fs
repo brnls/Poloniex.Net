@@ -85,7 +85,7 @@ module PublicApi =
         
         member x.GetTickers() = task {
             let! response = sendMessagePublic "returnTicker" []
-            return response |> ClientResult.fromResponse<'a>
+            return! response |> ClientResult.fromResponse<Tickers>
         }
 
 module TradingApi = 
@@ -137,7 +137,7 @@ module TradingApi =
         ``type``: string
         }
 
-    type BuyResponse = {
+    type BuySellResponse = {
         orderNumber: int64
         resultingTrades: TradeResult seq
         }
@@ -177,9 +177,35 @@ module TradingApi =
                 ("amount", amount.ToString())
             ]
             let! response = sendMessage "buy" param
-            return! response |> ClientResult.fromResponse<BuyResponse>
+            return! response |> ClientResult.fromResponse<BuySellResponse>
             }
         
+
+        member x.Sell(currencyPair: string, rate: decimal, amount: decimal) = task {
+            let param = [
+                ("currencyPair", currencyPair)
+                ("rate", rate.ToString())
+                ("amount", amount.ToString())
+            ]
+            let! response = sendMessage "sell" param
+            return! response |> ClientResult.fromResponse<BuySellResponse>
+            }
+       
+       
+        member x.CancelOrder(orderNumber: int64) = 
+            let param = [
+                ("orderNumber", orderNumber.ToString())
+            ]
+            sendMessage "cancelOrder" param
+        
+
+        member x.MoveOrder(orderNumber: int64, rate: decimal) =
+            let param = [
+                ("orderNumber", orderNumber.ToString())
+                ("rate", rate.ToString())
+            ]
+            sendMessage "moveOrder" param
+
 
         member x.Withdraw(currency: string, amount: decimal, address: string) = 
             let param = [
@@ -198,12 +224,3 @@ module TradingApi =
                 ("toAccount", toAccount.ToString().ToLower())
                 ]
             sendMessage "transferBalance" param 
-        
-        
-        member x.CancelOrder(orderNumber: int64) = 
-            let param = [
-                ("orderNumber", orderNumber.ToString())
-            ]
-            sendMessage "cancelOrder" param
-
-
