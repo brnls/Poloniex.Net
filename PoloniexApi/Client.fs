@@ -90,26 +90,36 @@ module PublicApi =
 
 module TradingApi = 
 
-    let constructHttpClient (apiKey:string) =
-        let client = new HttpClient()
-        client.BaseAddress <- Uri(@"https://poloniex.com/tradingApi")
-        client.DefaultRequestHeaders.Add("Key", apiKey)
-        client
+    let constructMessageSender apiKey secret =
+        let constructHttpClient (apiKey:string) =
+            let client = new HttpClient()
+            client.BaseAddress <- Uri(@"https://poloniex.com/tradingApi")
+            client.DefaultRequestHeaders.Add("Key", apiKey)
+            client
 
-    let constructMessage (command:string) (parameters: (string * string) seq) (sign: string -> string) =
-        let sb = Text.StringBuilder()
-        sb.Append(sprintf "command=%s&nonce=%d" (HttpUtility.UrlEncode(command)) (DateTime.Now.Ticks)) |> ignore
-        for (key,value) in parameters do
-            sb.Append(sprintf "&%s=%s" (HttpUtility.UrlEncode(key)) (HttpUtility.UrlEncode(value))) |> ignore
-        let postParameters = sb.ToString()
-        let message = new HttpRequestMessage(HttpMethod.Post, "")
-        message.Content <- new StringContent(postParameters, utf8, urlEncodedContentType)
-        message.Headers.Add("Sign", sign postParameters)
-        message
+        let constructMessage (command:string) (parameters: (string * string) seq) (sign: string -> string) =
+            let sb = Text.StringBuilder()
+            sb.Append(sprintf "command=%s&nonce=%d" (HttpUtility.UrlEncode(command)) (DateTime.Now.Ticks)) |> ignore
+            for (key,value) in parameters do
+                sb.Append(sprintf "&%s=%s" (HttpUtility.UrlEncode(key)) (HttpUtility.UrlEncode(value))) |> ignore
+            let postParameters = sb.ToString()
+            let message = new HttpRequestMessage(HttpMethod.Post, "")
+            message.Content <- new StringContent(postParameters, utf8, urlEncodedContentType)
+            message.Headers.Add("Sign", sign postParameters)
+            message
 
-    let constructMessageSigner (secret:string) =
-        let hasher = new HMACSHA512(utf8.GetBytes secret)
-        fun (message:string) -> BitConverter.ToString(hasher.ComputeHash(utf8.GetBytes message)).Replace("-", "").ToLower()
+        let constructMessageSigner (secret:string) =
+            let hasher = new HMACSHA512(utf8.GetBytes secret)
+            fun (message:string) -> BitConverter.ToString(hasher.ComputeHash(utf8.GetBytes message)).Replace("-", "").ToLower()
+
+        let client = constructHttpClient apiKey
+        let messageSigner = constructMessageSigner secret
+        let constructMessage command parameters = constructMessage command parameters messageSigner
+        let semaphore = (new SemaphoreSlim(1))
+        fun command parameters ->
+            let message = constructMessage command parameters
+            sendMessageWithDelay client semaphore message
+        
 
     type Balances = {
         Xmr: decimal
@@ -144,16 +154,7 @@ module TradingApi =
 
     type Client(apiKey:string, secret:string) =
 
-        let sendMessage = 
-            let client = constructHttpClient apiKey
-            sendMessageWithDelay client (new SemaphoreSlim(1))
-                
-        let messageSigner = constructMessageSigner secret
-        let constructMessage command parameters = constructMessage command parameters messageSigner
-
-        let sendMessage command parameters = 
-            let message = constructMessage command parameters
-            sendMessage message
+        let sendMessage = constructMessageSender apiKey secret
 
         member x.ReturnBalances() = task {
             let! response = sendMessage "returnBalances" []
