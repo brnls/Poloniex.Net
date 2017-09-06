@@ -125,6 +125,25 @@ module TradingApi =
         Xmr: decimal
     }
 
+    type BalanceTypes = {
+        available: decimal
+        onOrders: decimal
+        btcValue: decimal
+    }
+
+    type CompleteBalances = {
+        Xmr: BalanceTypes
+    }
+
+    type Address = {
+        Eth: string
+    }
+
+    type NewAddress = {
+        success: int
+        response: string
+    }
+
     type AccountType =
     |Exchange
     |Margin
@@ -152,6 +171,21 @@ module TradingApi =
         resultingTrades: TradeResult seq
         }
 
+    type ExchangeBalances = {
+        exchange: Balances
+        margin: Balances
+        lending: Balances
+    }
+
+    type TradePair = {
+        Btc: decimal
+        Xmr: decimal
+    }
+
+    type TradeBalances = {
+        Btc_Xmr: TradePair
+    }
+
     type Client(apiKey:string, secret:string) =
 
         let sendMessage = constructMessageSender apiKey secret
@@ -159,6 +193,27 @@ module TradingApi =
         member x.ReturnBalances() = task {
             let! response = sendMessage "returnBalances" []
             return! response |> ClientResult.fromResponse<Balances>
+            }
+
+        
+        member x.ReturnCompleteBalances() = task {
+            let! response = sendMessage "returnCompleteBalances" []
+            return! response |> ClientResult.fromResponse<CompleteBalances>
+            }
+        
+
+        member x.ReturnDepositAddresses() = task {
+            let! response = sendMessage "returnDepositAddresses" []
+            return! response |> ClientResult.fromResponse<Address>
+            }
+
+        
+        member x.GenerateNewAddress(currency: string) = task {
+            let param = [
+                ("currency", currency)
+            ]
+            let! response = sendMessage "generateNewAddress" param
+            return! response |> ClientResult.fromResponse<NewAddress>
             }
 
         
@@ -215,6 +270,18 @@ module TradingApi =
                 ("address", address)
             ]
             sendMessage "withdraw" param
+
+        
+        member x.ReturnAvailableAccountBalances() = task {
+            let! response = sendMessage "returnAvailableAccountBalances" []
+            return! response |> ClientResult.fromResponse<ExchangeBalances>
+            }
+
+
+        member x.ReturnTradableBalances() = task {
+            let! response = sendMessage "returnTradableBalances" []
+            return! response |> ClientResult.fromResponse<TradeBalances>
+            }
 
 
         member x.TransferBalance(currency: string, amount: decimal, fromAccount: AccountType, toAccount: AccountType) = 
