@@ -125,18 +125,18 @@ module TradingApi =
         Xmr: decimal
     }
 
-    type BalanceTypes = {
+    type CompleteBalance = {
         available: decimal
         onOrders: decimal
         btcValue: decimal
     }
 
     type CompleteBalances = {
-        Xmr: BalanceTypes
+        Xmr: CompleteBalance
     }
 
     type Address = {
-        Eth: string
+        Xmr: string
     }
 
     type NewAddress = {
