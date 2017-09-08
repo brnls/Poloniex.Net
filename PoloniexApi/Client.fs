@@ -233,6 +233,38 @@ module TradingApi =
         BTC_XMR: TradePair
     }
 
+    type MarginSummary = {
+        totalValue: decimal
+        pl: decimal
+        lendingFees: decimal
+        netValue: decimal
+        totalBorrowedValue: decimal
+        currentMargin: decimal
+    }
+
+    type MarginOrder = {
+        success: int
+        message: string
+        orderNumber: int64
+        resultingTrades: TradeResult seq
+    }
+
+    type MarginPositionInfo = {
+        amount: decimal
+        total: decimal
+        basePrice: decimal
+        liquidationPrice: int
+        pl: decimal
+        lendingFees: decimal
+        ``type``: string
+    }
+
+    type CloseMarginResult = {
+        success: int
+        message: string
+        resultingTrades: TradeResult seq
+    }
+
     type Client(apiKey:string, secret:string) =
 
         let sendMessage = constructMessageSender apiKey secret
@@ -376,3 +408,49 @@ module TradingApi =
                 ("toAccount", toAccount.ToString().ToLower())
                 ]
             sendMessage "transferBalance" param 
+        
+        
+        member x.ReturnMarginAccountSummary() = task {
+            let! response = sendMessage "returnMarginAccountSummary" []
+            return! response |> ClientResult.fromResponse<MarginSummary>
+            }
+
+
+        member x.MarginBuy(currencyPair: string, rate: decimal, amount: decimal) = task {
+            let param = [
+                ("currencyPair", currencyPair)
+                ("rate", rate.ToString())
+                ("amount", amount.ToString())
+            ]
+            let! response = sendMessage "marginBuy" param
+            return! response |> ClientResult.fromResponse<MarginOrder>
+            }
+
+
+        member x.MarginSell(currencyPair: string, rate: decimal, amount: decimal) = task {
+            let param = [
+                ("currencyPair", currencyPair)
+                ("rate", rate.ToString())
+                ("amount", amount.ToString())
+            ]
+            let! response = sendMessage "marginSell" param
+            return! response |> ClientResult.fromResponse<MarginOrder>
+            }
+
+
+        member x.GetMarginPosition(currencyPair: string) = task {
+            let param = [
+                ("currencyPair", currencyPair)
+            ]
+            let! response = sendMessage "getMarginPosition" param
+            return! response |> ClientResult.fromResponse<MarginPositionInfo>
+            }
+        
+
+        member x.CloseMarginPosition(currencyPair: string) = task {
+            let param = [
+                ("currencyPair", currencyPair)
+            ]
+            let! response = sendMessage "closeMarginPosition" param
+            return! response |> ClientResult.fromResponse<CloseMarginResult>
+            }

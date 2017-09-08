@@ -12,8 +12,6 @@ let main argv =
     let tradingClient = Client.TradingApi.Client(apiKey, secret)
     let publicClient = Client.PublicApi.Client()
 
-    let fees = tradingClient.ReturnFeeInfo().Result.Result()
-    let x = 2
     //let tradeOrder = tradingClient.TransferBalance("XMR", 0.05m, Margin, Exchange).Result
     //let tradeBalance = tradingClient.ReturnTradableBalances().Result.Result()
     //let buyResult = tradingClient.Buy(BTC_XMR, 0.02300001m, 0.1m).Result.Result()
