@@ -122,7 +122,7 @@ module TradingApi =
         
 
     type Balances = {
-        Xmr: decimal
+        XMR: decimal
     }
 
     type CompleteBalance = {
@@ -132,16 +132,31 @@ module TradingApi =
     }
 
     type CompleteBalances = {
-        Xmr: CompleteBalance
+        XMR: CompleteBalance
     }
 
     type Address = {
-        Xmr: string
+        XMR: string
     }
 
     type NewAddress = {
         success: int
         response: string
+    }
+
+    type History = {
+        currency: string
+        address: string
+        amount: decimal
+        confirmations: int
+        txid: string
+        timestamp: int64
+        status: string
+    }
+
+    type DepositWithdrawalHx = {
+        deposits: History seq
+        withdrawals: History seq
     }
 
     type AccountType =
@@ -157,6 +172,31 @@ module TradingApi =
         total: decimal
         }
 
+    type TradeHistory = {
+        globalTradeID: int64
+        tradeID: int64
+        date: DateTimeOffset
+        rate: decimal
+        amount: decimal
+        total: decimal
+        fee: decimal
+        orderNumber: int64
+        ``type``: string
+        category: string
+    }
+
+    type OrderTrades = {
+        globalTradeID: int64
+        tradeID: int64
+        currencyPair: string
+        ``type``: string
+        rate: decimal
+        amount: decimal
+        total: decimal
+        fee: decimal
+        date: DateTimeOffset
+    }
+
     type TradeResult = {
         amount: decimal
         date: DateTimeOffset
@@ -171,6 +211,13 @@ module TradingApi =
         resultingTrades: TradeResult seq
         }
 
+    type FeeInfo = {
+        makerFee: decimal
+        takerFee: decimal
+        thirtyDayVolume: decimal
+        nextTier: decimal
+    }
+
     type ExchangeBalances = {
         exchange: Balances
         margin: Balances
@@ -178,12 +225,12 @@ module TradingApi =
     }
 
     type TradePair = {
-        Btc: decimal
-        Xmr: decimal
+        BTC: decimal
+        XMR: decimal
     }
 
     type TradeBalances = {
-        Btc_Xmr: TradePair
+        BTC_XMR: TradePair
     }
 
     type Client(apiKey:string, secret:string) =
@@ -217,12 +264,43 @@ module TradingApi =
             }
 
         
+        member x.ReturnDepositsWithdrawals(start: int64, ``end``: int64) = task {
+            let param = [
+                ("start", start.ToString())
+                ("end", ``end``.ToString())
+            ]
+            let! response = sendMessage "returnDepositsWithdrawals" param
+            return! response |> ClientResult.fromResponse<DepositWithdrawalHx>
+            }
+
+        
         member x.ReturnOpenOrders(currencyPair: string) = task {
             let param = [
                 ("currencyPair", currencyPair)
             ]
             let! response = sendMessage "returnOpenOrders" param
             return! response |> ClientResult.fromResponse<OpenOrder seq>
+            }
+
+        
+        member x.ReturnTradeHistory(currencyPair: string, start: int64, ``end``: int64, limit: int) = task {
+            let param = [
+                ("currencyPair", currencyPair)
+                ("start", start.ToString())
+                ("end", ``end``.ToString())
+                ("limit", limit.ToString())
+            ]
+            let! response = sendMessage "returnTradeHistory" param
+            return! response |> ClientResult.fromResponse<TradeHistory seq>
+            }
+        
+        
+        member x.ReturnOrderTrades(orderNumber: int64) = task {
+            let param = [
+                ("orderNumber", orderNumber.ToString())
+            ]
+            let! response = sendMessage "returnOrderTrades" param
+            return! response |> ClientResult.fromResponse<OrderTrades seq>
             }
 
 
@@ -270,6 +348,12 @@ module TradingApi =
                 ("address", address)
             ]
             sendMessage "withdraw" param
+
+        
+        member x.ReturnFeeInfo() = task {
+            let! response = sendMessage "returnFeeInfo" []
+            return! response |> ClientResult.fromResponse<FeeInfo>
+            }
 
         
         member x.ReturnAvailableAccountBalances() = task {
