@@ -265,6 +265,53 @@ module TradingApi =
         resultingTrades: TradeResult seq
     }
 
+    type LoanOffer = {
+        success: int
+        message: string
+        orderID: int64
+    }
+
+    type OpenLoanOffer = {
+        id: int64
+        rate: decimal
+        amount: decimal
+        duration: int
+        autoRenew: int
+        date: DateTimeOffset
+    }
+
+    type OpenLoanResult = {
+        XMR: OpenLoanOffer seq
+    }
+
+    type ActiveLoan = {
+        id: int64
+        currency: string
+        rate: decimal
+        amount: decimal
+        range: int
+        autoRenew: int
+        date: DateTimeOffset
+        fees: decimal
+    }
+
+    type ActiveLoanResult = {
+        provided: ActiveLoan seq
+    }
+
+    type LendingHistory = {
+        id: int64
+        currency: string
+        rate: decimal
+        amount: decimal
+        duration: decimal
+        interest: decimal
+        fee: decimal
+        earned: decimal
+        ``open``: DateTimeOffset
+        close: DateTimeOffset
+    }
+
     type Client(apiKey:string, secret:string) =
 
         let sendMessage = constructMessageSender apiKey secret
@@ -454,3 +501,53 @@ module TradingApi =
             let! response = sendMessage "closeMarginPosition" param
             return! response |> ClientResult.fromResponse<CloseMarginResult>
             }
+
+        
+        member x.CreateLoanOffer(currency: string, amount: decimal, duration: int, autoRenew: int, lendingRate: decimal) = task {
+            let param = [
+                ("currency", currency)
+                ("amount", amount.ToString())
+                ("duration", duration.ToString())
+                ("autoRenew", autoRenew.ToString())
+                ("lendingRate", lendingRate.ToString())
+            ]
+            let! response = sendMessage "createLoanOffer" param
+            return! response |> ClientResult.fromResponse<LoanOffer>
+            }
+
+
+        member x.CancelLoan(orderNumber: int64) = 
+            let param = [
+                ("orderNumber", orderNumber.ToString())
+            ]
+            sendMessage "cancelLoan" param
+
+
+        member x.ReturnOpenLoanOffers() = task {
+            let! response = sendMessage "returnOpenLoanOffers" []
+            return! response |> ClientResult.fromResponse<OpenLoanOffer>
+            }
+
+
+        member x.ReturnActiveLoans() = task {
+            let! response = sendMessage "returnActiveLoans" []
+            return! response |> ClientResult.fromResponse<ActiveLoanResult>
+            }
+
+
+        member x.ReturnLendingHistory(start: int64, ``end``: int64, limit: int) = task {
+            let param = [
+                ("start", start.ToString())
+                ("end", ``end``.ToString())
+                ("limit", limit.ToString())
+            ]
+            let! response = sendMessage "returnLendingHistory" param
+            return! response |> ClientResult.fromResponse<LendingHistory seq>
+            }
+
+        
+        member x.ToggleAutoRenew(orderNumber: int64) =
+            let param = [
+                ("orderNumber", orderNumber.ToString())
+            ]
+            sendMessage "toggleAutoRenew" param
