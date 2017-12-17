@@ -10,10 +10,11 @@ open Newtonsoft.Json
 
 let utf8 = System.Text.Encoding.UTF8
 let urlEncodedContentType = "application/x-www-form-urlencoded"
+let jsonSerializerSettings = new JsonSerializerSettings(DateTimeZoneHandling = DateTimeZoneHandling.Utc)
 
 let readMessage<'a> (msg : HttpResponseMessage) = task {
     let! content = msg.Content.ReadAsStringAsync()
-    return JsonConvert.DeserializeObject<'a>(content)
+    return JsonConvert.DeserializeObject<'a>(content, jsonSerializerSettings)
     }
 
 let sendMessageWithDelay (client:HttpClient) (semaphore: SemaphoreSlim) = 
@@ -90,12 +91,12 @@ module PublicApi =
 
 module TradingApi = 
 
-    let constructMessageSender apiKey secret =
-        let constructHttpClient (apiKey:string) =
-            let client = new HttpClient()
-            client.BaseAddress <- Uri(@"https://poloniex.com/tradingApi")
-            client.DefaultRequestHeaders.Add("Key", apiKey)
-            client
+    let constructMessageSender (apiKey:string) (secret:string) =
+        let client = 
+            let c = new HttpClient()
+            c.BaseAddress <- Uri(@"https://poloniex.com/tradingApi")
+            c.DefaultRequestHeaders.Add("Key", apiKey)
+            c
 
         let constructMessage (command:string) (parameters: (string * string) seq) (sign: string -> string) =
             let sb = Text.StringBuilder()
@@ -108,17 +109,13 @@ module TradingApi =
             message.Headers.Add("Sign", sign postParameters)
             message
 
-        let constructMessageSigner (secret:string) =
+        let messageSigner = 
             let hasher = new HMACSHA512(utf8.GetBytes secret)
             fun (message:string) -> BitConverter.ToString(hasher.ComputeHash(utf8.GetBytes message)).Replace("-", "").ToLower()
 
-        let client = constructHttpClient apiKey
-        let messageSigner = constructMessageSigner secret
-        let constructMessage command parameters = constructMessage command parameters messageSigner
-        let semaphore = (new SemaphoreSlim(1))
         fun command parameters ->
-            let message = constructMessage command parameters
-            sendMessageWithDelay client semaphore message
+            let message = constructMessage command parameters messageSigner
+            sendMessageWithDelay client (new SemaphoreSlim(1)) message
         
 
     type Balances = {
@@ -175,7 +172,7 @@ module TradingApi =
     type TradeHistory = {
         globalTradeID: int64
         tradeID: int64
-        date: DateTimeOffset
+        date: DateTime
         rate: decimal
         amount: decimal
         total: decimal
@@ -194,12 +191,12 @@ module TradingApi =
         amount: decimal
         total: decimal
         fee: decimal
-        date: DateTimeOffset
+        date: DateTime
     }
 
     type TradeResult = {
         amount: decimal
-        date: DateTimeOffset
+        date: DateTime
         rate: decimal
         total: decimal
         tradeID: int64
@@ -269,6 +266,7 @@ module TradingApi =
         success: int
         message: string
         orderID: int64
+        error: string
     }
 
     type OpenLoanOffer = {
@@ -277,11 +275,12 @@ module TradingApi =
         amount: decimal
         duration: int
         autoRenew: int
-        date: DateTimeOffset
+        date: DateTime
     }
 
     type OpenLoanResult = {
         XMR: OpenLoanOffer seq
+        BTC: OpenLoanOffer seq
     }
 
     type ActiveLoan = {
@@ -291,7 +290,7 @@ module TradingApi =
         amount: decimal
         range: int
         autoRenew: int
-        date: DateTimeOffset
+        date: DateTime
         fees: decimal
     }
 
@@ -308,8 +307,8 @@ module TradingApi =
         interest: decimal
         fee: decimal
         earned: decimal
-        ``open``: DateTimeOffset
-        close: DateTimeOffset
+        ``open``: DateTime
+        close: DateTime
     }
 
     type Client(apiKey:string, secret:string) =
@@ -516,16 +515,16 @@ module TradingApi =
             }
 
 
-        member x.CancelLoan(orderNumber: int64) = 
+        member x.CancelLoanOffer(orderNumber: int64) = 
             let param = [
                 ("orderNumber", orderNumber.ToString())
             ]
-            sendMessage "cancelLoan" param
+            sendMessage "cancelLoanOffer" param
 
 
         member x.ReturnOpenLoanOffers() = task {
             let! response = sendMessage "returnOpenLoanOffers" []
-            return! response |> ClientResult.fromResponse<OpenLoanOffer>
+            return! response |> ClientResult.fromResponse<OpenLoanResult>
             }
 
 
