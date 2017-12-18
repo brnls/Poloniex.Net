@@ -5,8 +5,8 @@ open System
 open System.Web
 open System.Threading
 open System.Threading.Tasks
-open FSharp.Control.Tasks
 open Newtonsoft.Json
+open Giraffe
 
 let utf8 = System.Text.Encoding.UTF8
 let urlEncodedContentType = "application/x-www-form-urlencoded"
@@ -19,10 +19,10 @@ let readMessage<'a> (msg : HttpResponseMessage) = task {
 
 let sendMessageWithDelay (client:HttpClient) (semaphore: SemaphoreSlim) = 
     fun message -> task {
-        do! unitTask <| semaphore.WaitAsync()
+        do! semaphore.WaitAsync()
         try
             let! message = client.SendAsync(message)
-            do! unitTask <| Task.Delay(200)
+            do! Task.Delay(200)
             return message
         finally
             semaphore.Release() |> ignore

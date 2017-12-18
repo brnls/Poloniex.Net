@@ -1,9 +1,9 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.26403.3
+VisualStudioVersion = 15.0.27130.2010
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "PoloniexApi", "PoloniexApi\PoloniexApi.fsproj", "{B355AE92-88D1-401A-AB03-4A16053231AC}"
+Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "PoloniexApi", "PoloniexApi\PoloniexApi.fsproj", "{B355AE92-88D1-401A-AB03-4A16053231AC}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -18,5 +18,8 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {F4DFA98A-0C85-4C47-9D93-63DDAD5E74F0}
 	EndGlobalSection
 EndGlobal
